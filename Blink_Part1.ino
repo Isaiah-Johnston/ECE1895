@@ -3,7 +3,7 @@
 int isPressed = 0;
 
 void setup() {
-
+// Alex's comment
   pinMode(7, OUTPUT);
   pinMode(8, INPUT);
 }
