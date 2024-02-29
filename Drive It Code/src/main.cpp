@@ -1,7 +1,5 @@
 #include <Arduino.h>
 
-// TEST
-
 void setup() {
   Serial.begin(9600);
 }
