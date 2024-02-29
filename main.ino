@@ -1,14 +1,13 @@
 int isPressed = 0;
-// Alex's Comment
+
 void setup() {
-// Alex's comment
   pinMode(5, OUTPUT);
   pinMode(6, OUTPUT);
   pinMode(7, OUTPUT);
   pinMode(8, INPUT);
 
 }
-//This is Dillon Hepler's branch
+
 void loop() {
 
   isPressed = digitalRead(8);
