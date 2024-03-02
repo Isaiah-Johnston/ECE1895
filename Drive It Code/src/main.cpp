@@ -2,6 +2,7 @@
 #include <SoftwareSerial.h>
 #include <DFRobotDFPlayerMini.h>
 #include <ezButton.h>
+#include <string.h>
 
 // static pins
 #define serial_TX   2
@@ -37,6 +38,8 @@ void setup() {
   Serial.begin(9600);
   softwareSerial.begin(9600);
 
+  Serial.println("HELLO WORLD");
+
 // ROTARY ENCODER
 {
   // set debouncing period to 50ms
@@ -52,7 +55,7 @@ void setup() {
     Serial.println("Connection to DFplayerMini successful!");
 
     // set volume 0-30
-    mp3.volume(5);
+    mp3.volume(30);
     
     // play 0001.mp3 in "mp3" folder on SD
     mp3.playMp3Folder(1);
@@ -64,7 +67,6 @@ void setup() {
 }
 
 void loop() {
-if(digitalRead(run_sw)) {
 
 // ROTARY ENCODER 
 {
@@ -90,7 +92,7 @@ if(digitalRead(run_sw)) {
 
   // move current state into previous
   prev_CLK_state = curr_CLK_state;
-
+ 
   // check for encoder button press
   if(encoder_button.isPressed())
     Serial.println("The button has been pressed.");
@@ -104,8 +106,6 @@ if(digitalRead(run_sw)) {
     mp3.playMp3Folder(2);
 
   // TESTING END
-
-}
 
 }
 }
