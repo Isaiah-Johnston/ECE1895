@@ -11,6 +11,8 @@
 #define encoder_CLK 5
 #define encoder_DT  6
 #define encoder_SW  7
+#define brake_sw   28
+#define accel_sw   27
 
 // static vars
 #define clockwise   0
@@ -66,47 +68,113 @@ void setup() {
 
 }
 
+// Start the game, "honk to start" on display maybe. after button press enter loop
+
 void loop() {
+  // Select a random number 1-5:
+  // 1: honk 
+  // 2: turn left
+  // 3: turn right
+  // 4: brake
+  // 5: accel
 
-// ROTARY ENCODER 
-{
-  // check for encoder button press
-  encoder_button.loop();
+  int randomNumber = random(1, 6);
 
-  // read current encoder state
-  curr_CLK_state = digitalRead(encoder_CLK);
+  switch (randomNumber) {
+    case 1:
+      // Play sound for honk button press command
+      playDFPlayerSound(1);  // Adjust sound number as needed
+      Serial.println("Case 1: Honk command sound. Waiting for button press.");
+      
+      // Wait for the rotary button to be pressed
+      while (!encoder_button.isPressed()) {
+        encoder_button.loop();
+        
+        // Check if another action is taken
+        if (digitalRead(run_sw) || digitalRead(encoder_SW) || (encoder_direction == cclockwise) || (encoder_direction == clockwise)) {
+          // Play an error sound
+          playDFPlayerSound(7);  // Adjust sound number as needed for an error sound
+          Serial.println("Incorrect action taken. Exiting loop.");
+          return;  // Exit the loop
+        }
+      }
 
-  // check for CLK state-change
-  // check rising edge ONLY
-  if((curr_CLK_state != prev_CLK_state) && curr_CLK_state) {
-    // ternary operator
-    encoder_direction = digitalRead(encoder_DT) ? cclockwise : clockwise;
-    encoder_direction ? --CLK_count : ++CLK_count;
+      // Play honk sound
+      playDFPlayerSound(6);  // Adjust sound number as needed
+      break;
+
+    case 2:
+      // Play the sound for left turn command
+      playDFPlayerSound(2);  // Adjust sound number as needed
+      Serial.println("Case 2: Left turn command sound. Waiting for counter-clockwise rotation.");
+      while (encoder_direction != cclockwise) {
+        encoder_button.loop();
+        
+        // Check if another action is taken
+        if (digitalRead(run_sw) || digitalRead(encoder_SW) || (encoder_direction == cclockwise) || (encoder_direction == clockwise)) {
+          // Play an error sound
+          playDFPlayerSound(7);  // Adjust sound number as needed for an error sound
+          Serial.println("Incorrect action taken. Exiting loop.");
+          return;  // Exit the loop
+        }
+      }
+      break;
+
+    case 3:
+      // Play the correct sound for right turn command
+      playDFPlayerSound(3);  // Adjust sound number as needed
+      Serial.println("Case 3: Right turn command sound. Waiting for clockwise rotation.");
+      while (encoder_direction != clockwise) {
+        encoder_button.loop();
+        
+        // Check if another action is taken
+        if (digitalRead(run_sw) || digitalRead(encoder_SW) || (encoder_direction == cclockwise) || (encoder_direction == clockwise)) {
+          // Play an error sound
+          playDFPlayerSound(7);  // Adjust sound number as needed for an error sound
+          Serial.println("Incorrect action taken. Exiting loop.");
+          return;  // Exit the loop
+        }
+      }
+      break;
+
+    case 4:
+      // Play the correct sound for brake command
+      playDFPlayerSound(4);  // Adjust sound number as needed
+      Serial.println("Case 4: Brake command sound. Waiting for brake limit switch.");
+      while (!digitalRead(brake_sw)) {
+        encoder_button.loop();
+        
+        // Check if another action is taken
+        if (digitalRead(run_sw) || digitalRead(encoder_SW) || (encoder_direction == cclockwise) || (encoder_direction == clockwise)) {
+          // Play an error sound
+          playDFPlayerSound(7);  // Adjust sound number as needed for an error sound
+          Serial.println("Incorrect action taken. Exiting loop.");
+          return;  // Exit the loop
+        }
+      }
+      break;
+
+    case 5:
+      // Play the correct sound for acceleration command
+      playDFPlayerSound(5);  // Adjust sound number as needed
+      Serial.println("Case 5: Accelerator command sound. Waiting for accelerator limit switch.");
+      while (digitalRead(accel_sw)) {
+        encoder_button.loop();
+        
+        // Check if another action is taken
+        if (digitalRead(run_sw) || digitalRead(encoder_SW) || (encoder_direction == cclockwise) || (encoder_direction == clockwise)) {
+          // Play an error sound
+          playDFPlayerSound(7);  // Adjust sound number as needed for an error sound
+          Serial.println("Incorrect action taken. Exiting loop.");
+          return;  // Exit the loop
+        }
+      }
+      break;
   }
-    
-  // print movements
-  if(curr_CLK_state != prev_CLK_state) {
-    String tmpPrint = !encoder_direction ? "Clockwise" : "Counter-Clockwise";
-    Serial.println(tmpPrint + "  | Count: " + CLK_count);
-  }
-
-  // move current state into previous
-  prev_CLK_state = curr_CLK_state;
- 
-  // check for encoder button press
-  if(encoder_button.isPressed())
-    Serial.println("The button has been pressed.");
 }
 
-// DFplayerMini MP3 PLAYER
-{
-  // TESTING START
-
-  if((CLK_count > 10) || (CLK_count < -10))
-    mp3.playMp3Folder(2);
-
-  // TESTING END
-
+void playDFPlayerSound(int soundNumber) {
+  // Play the specified sound on the DFPlayer Mini
+  mp3.playMp3Folder(soundNumber);
+  delay(500);  // Adjust delay if needed
 }
-}
-
