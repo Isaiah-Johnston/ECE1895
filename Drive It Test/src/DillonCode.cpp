@@ -1,149 +1,163 @@
 #include <Arduino.h>
-// Ensure you include the DFRobotDFPlayerMini library
+#include <SoftwareSerial.h>
 #include <DFRobotDFPlayerMini.h>
-// Ensure you include the ezButton library
 #include <ezButton.h>
 
-// Pin definitions
-uint8_t serial_TX = 2;
-uint8_t serial_RX = 3;  
-uint8_t power_SW = 4;    
-uint8_t encoder_CLK = 5; 
-uint8_t encoder_DT = 6;  
-uint8_t encoder_SW = 7;
-uint8_t ignition_SW = 8; 
-uint8_t debug_LED = 13;
-uint8_t BrakePin = 9; // Brake functionality pin
+// Pin definitions for inputs and outputs
+#define serial_TX 2
+#define serial_RX 3
+const int BrakePin = 28;      // Brake button pin
+const int AcceleratePin = 27; // Accelerate button pin
+const int HonkPin = 11;       // Honk button pin
+const int EncoderPinA = 5;    // Rotary encoder A pin
+const int EncoderPinB = 6;    // Rotary encoder B pin
+const int feedbackPin = 12;   // Feedback pin (e.g., an LED or a buzzer for game feedback)
 
-// Additional definitions for setup and runtime behavior
-uint32_t baud_rate = 9600;
-bool clockwise = true;
-bool cclockwise = false;
-int32_t encoder_direction;       
-int32_t encoder_CLK_position = 0;
-bool encoder_curr_state;
-bool encoder_prev_state;
-int BrakeState = 0; // State of the brake
+// Encoder position tracking
+volatile int encoderPos = 0;
+int lastEncoderPos = 0;
 
-// Game control definitions
-uint8_t Game_Power_On = 1;   
-uint8_t Game_Start = 2;  
-uint8_t Turn_On_Car = 3;
-uint8_t Turn_Off_Car = 4;
-uint8_t Turn_Left = 5;
-uint8_t Turn_Right = 6;
-uint8_t Accelerate = 7;
-uint8_t Brake = 8; // Brake signal
-uint8_t Up_Shift = 9;
-uint8_t Down_Shift = 10;
-uint8_t Car_Horn = 11;
-uint8_t Game_Won = 12;
-uint8_t Game_Lost = 13;
+// Game control variables
+unsigned long gameStartTime;
+const long roundTime = 5000; // Time per round in milliseconds (5 seconds)
+bool gameActive = false;
+int score = 0;
 
+// Initialize buttons using ezButton library
+ezButton brakeButton(BrakePin);
+ezButton accelerateButton(AcceleratePin);
+ezButton honkButton(HonkPin);
+
+// Initialize DFPlayer Mini on a software serial port
+SoftwareSerial softwareSerial(serial_RX, serial_TX); // RX, TX
 DFRobotDFPlayerMini mp3;
-ezButton encoder_button(encoder_SW);
-ezButton ignition_switch(ignition_SW);
 
-// Function prototypes
-bool initialize();
-HardwareSerial& getSSerial();
-
-bool initialize() {
-    Serial.begin(baud_rate);
-    // Placeholder for actual serial port used for DFPlayerMini
-    getSSerial().begin(baud_rate);
-
-    // I/O initialization
-    pinMode(debug_LED, OUTPUT); 
-    if (digitalRead(debug_LED) == HIGH) { // Simple check; adjust according to your setup
-        Serial.println("Debug LED pin mode set correctly.");
-    } else {
-        Serial.println("Error setting debug LED pin mode.");
-        return false;
-    }
-    
-    pinMode(power_SW, INPUT);
-    pinMode(encoder_CLK, INPUT);
-    pinMode(encoder_DT, INPUT);
-
-    Serial.println("I/O INITIALIZED...");
-
-    encoder_button.setDebounceTime(100);
-    encoder_prev_state = digitalRead(encoder_CLK);
-    Serial.println("ENCODER INITIALIZED...");
-
-    mp3.volume(20);
-    if (!mp3.begin(getSSerial())) {
-        Serial.println("DFPLAYER initialization failed.");
-        return false;
-    }
-    mp3.playMp3Folder(Game_Power_On);
-    Serial.println("DFPLAYER INITIALIZED...");
-
-    ignition_switch.setDebounceTime(100);
-
-    Serial.println("Waiting for ignition...");
-    ignition_switch.loop();
-    while (!ignition_switch.isPressed()) { delay(1); }
-    Serial.println("Ignition confirmed.");
-
-    return true;
-}
+// Game action enumeration for clarity
+enum GameAction { PRESS_BRAKE, PRESS_ACCELERATE, STEER_LEFT, STEER_RIGHT, PRESS_HONK, NONE };
+GameAction currentAction = NONE;
 
 void setup() {
-    // Attempt to initialize all components
-    if (!initialize()) {
-        Serial.println("INITIALIZATION FAILED");
-        while (true) {
-            digitalWrite(debug_LED, HIGH);
-            delay(100);
-            digitalWrite(debug_LED, LOW);
-            delay(100);
-        }
-    }
+  Serial.begin(9600);
+  softwareSerial.begin(9600); // Start the software serial for DFPlayer Mini
+  
+  // Initialize the DFPlayer Mini
+  if (mp3.begin(softwareSerial)) {
+    Serial.println("DFPlayer Mini is online.");
+    mp3.volume(30); // Set the volume value (0~30)
+    mp3.playMp3Folder(1); // Play the first mp3 in the "mp3" folder
+  } else {
+    Serial.println("Unable to communicate with DFPlayer Mini.");
+  }
 
-    // Additional setup for brake functionality
-    pinMode(BrakePin, INPUT);
-    pinMode(debug_LED, OUTPUT); // Assuming debug_LED reuses for brake indication
+  // Initialize button pins
+  brakeButton.setDebounceTime(50); // set debounce time to 50 milliseconds
+  accelerateButton.setDebounceTime(50);
+  honkButton.setDebounceTime(50);
+
+  // Initialize encoder pins
+  pinMode(EncoderPinA, INPUT_PULLUP);
+  pinMode(EncoderPinB, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(EncoderPinA), readEncoder, CHANGE); // Attach interrupt for encoder
+
+  // Initialize feedback pin
+  pinMode(feedbackPin, OUTPUT);
+
+  // Start the game
+  startGame();
 }
 
 void loop() {
-    encoder_button.loop();
-    ignition_switch.loop();
+  // Update button states
+  brakeButton.loop();
+  accelerateButton.loop();
+  honkButton.loop();
 
-    if (ignition_switch.isReleased()) {
-        Serial.println("Ignition switch released.");
-        // Additional functionality as needed
-    }
+  // Game logic here
+  checkInput(); // Check the player's input
 
-    if (encoder_button.isPressed()) {
-        Serial.println("Encoder button pressed.");
-        // Additional functionality as needed
-    }
-
-    encoder_curr_state = digitalRead(encoder_CLK);
-    if (encoder_curr_state != encoder_prev_state && encoder_curr_state) {
-        encoder_direction = digitalRead(encoder_DT) ? clockwise : cclockwise;
-        encoder_direction ? ++encoder_CLK_position : --encoder_CLK_position;
-    }
-
-    if (encoder_curr_state != encoder_prev_state) {
-        String directionPrint = encoder_direction ? "Counter-Clockwise" : "Clockwise";
-        Serial.println(directionPrint + " | Count: " + encoder_CLK_position);
-    }
-
-    // Brake functionality integrated into the loop
-    BrakeState = digitalRead(BrakePin);
-    if (BrakeState == HIGH) {
-        digitalWrite(debug_LED, HIGH);
-    } else {
-        digitalWrite(debug_LED, LOW);
-    }
-
-    encoder_prev_state = encoder_curr_state; // Update previous state for next loop iteration
+  // Check if time for the current action has expired
+  if (millis() - gameStartTime >= roundTime) {
+    gameOver();
+  }
 }
 
-// Placeholder for getSSerial() function. Replace with actual serial port used for DFPlayerMini
-HardwareSerial& getSSerial() {
-    return Serial; // Adjust this to the correct serial port if needed
+void readEncoder() {
+  if (digitalRead(EncoderPinA) == digitalRead(EncoderPinB)) {
+    encoderPos++;
+  } else {
+    encoderPos--;
+  }
 }
+
+void startGame() {
+  gameActive = true;
+  score = 0;
+  selectNextAction();
+}
+
+void gameOver() {
+  gameActive = false;
+  Serial.print("Game Over! Your score: ");
+  Serial.println(score);
+
+  // Signal game over
+  digitalWrite(feedbackPin, HIGH);
+  delay(1000);
+  digitalWrite(feedbackPin, LOW);
+
+  // Optionally, restart game or wait for a restart command
+}
+
+void selectNextAction() {
+  currentAction = static_cast<GameAction>(random(PRESS_BRAKE, PRESS_HONK + 1));
+  gameStartTime = millis(); // Reset round start time
+  score++;
+  
+  Serial.print("Score: ");
+  Serial.print(score);
+  Serial.print(" - ");
+  
+  switch(currentAction) {
+    case PRESS_BRAKE: Serial.println("Press Brake!"); mp3.playMp3Folder(4); break; // Example: mp3 file 4 for brake
+    case PRESS_ACCELERATE: Serial.println("Press Accelerate!"); mp3.playMp3Folder(5); break; // Example: mp3 file 5 for accelerate
+    case STEER_LEFT: Serial.println("Steer Left!"); mp3.playMp3Folder(2); lastEncoderPos = encoderPos; break; // Example: mp3 file 2 for left
+    case STEER_RIGHT: Serial.println("Steer Right!"); mp3.playMp3Folder(3); lastEncoderPos = encoderPos; break; // Example: mp3 file 3 for right
+    case PRESS_HONK: Serial.println("Press Honk!"); mp3.playMp3Folder(1); break; // Example: mp3 file 1 for honk
+    default: break;
+  }
+}
+
+void checkInput() {
+  if (!gameActive) return;
+
+  switch(currentAction) {
+    case PRESS_BRAKE:
+      if (brakeButton.isPressed()) correctInput();
+      break;
+    case PRESS_ACCELERATE:
+      if (accelerateButton.isPressed()) correctInput();
+      break;
+    case STEER_LEFT:
+      // Check for left rotation from the encoder
+      if (lastEncoderPos > encoderPos) correctInput();
+      break;
+    case STEER_RIGHT:
+      // Check for right rotation from the encoder
+      if (lastEncoderPos < encoderPos) correctInput();
+      break;
+    case PRESS_HONK:
+      if (honkButton.isPressed()) correctInput();
+      break;
+    default:
+      break;
+  }
+  
+  // Update last encoder position for next check
+  lastEncoderPos = encoderPos;
+}
+
+void correctInput() {
+  Serial.println("Correct! Score: " + String(score));
+  selectNextAction(); // Move to the next round
+}
+
