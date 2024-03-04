@@ -1,97 +1,97 @@
-#include <initialize.h>
+#include "initialize.h"
 
-uint8_t serial_TX   = 2;
-uint8_t serial_RX   = 3;  
-uint8_t power_SW    = 4;    
-uint8_t encoder_CLK = 5; 
-uint8_t encoder_DT  = 6;  
-uint8_t encoder_SW  = 7;
-uint8_t ignition_SW = 8; 
-uint8_t debug_LED   = 13;
-
-uint32_t baud_rate  = 9600;
-bool     clockwise  = 1;
-bool     cclockwise = 0;
-
-uint8_t Game_Power_On = 1;   
-uint8_t Game_Start    = 2;  
-uint8_t Turn_On_Car   = 3;
-uint8_t Turn_Off_Car  = 4;
-uint8_t Turn_Left     = 5;
-uint8_t Turn_Right    = 6;
-uint8_t Accelerate    = 7;
-uint8_t Brake         = 8;
-uint8_t Up_Shift      = 9;
-uint8_t Down_Shift    = 10;
-uint8_t Car_Horn      = 11;
-uint8_t Game_Won      = 12;
-uint8_t Game_Lost     = 13;
-
-int32_t encoder_direction;       
-int32_t encoder_CLK_position;
-bool    encoder_curr_state;
-bool    encoder_prev_state;
-
-DFRobotDFPlayerMini mp3;
-ezButton            encoder_button(encoder_SW);
-ezButton            ignition_switch(ignition_SW);
-
-// Performs all actions a typical setup() would
 bool initialize() {
 
-    // begin serial communications
+{ /* SERIAL PORTS */
+    
+    // start serial communications
     Serial.begin(baud_rate);
     getSSerial().begin(baud_rate);
 
-    //////////// I/O ///////////// 
+    // finished serial initialization
+    Serial.println("INITIALIZATION STARTED...");                  delay(1);
+    Serial.println("        ... beginning serial communication"); delay(1);
+    Serial.println("SERIAL INITIALIZED");                         delay(1);
+}
 
-    // reset all pins to default state
+
+
+{ /* IO */
+    
+    // reset pins and error check
+    Serial.println("        ... resetting pins"); delay(1);
     if(!resetPins()) { return false; }
+    
 
-    // set I/O types and check for errors
+    // set I/O types and error check 
+    Serial.println("        ... setting pin types"); delay(1);
     pinMode(debug_LED,   OUTPUT); if( getPinMode(debug_LED)  ) { return false; }
     pinMode(power_SW,    INPUT ); if(!getPinMode(power_SW)   ) { return false; }
     pinMode(encoder_CLK, INPUT ); if(!getPinMode(encoder_CLK)) { return false; }
     pinMode(encoder_DT,  INPUT ); if(!getPinMode(encoder_DT) ) { return false; }
 
-    Serial.println("I/O INITIALIZED...");
+    // finished I/O initialization 
+    Serial.println("I/O INITIALIZED"); delay(1);
+}
 
-    //////////// ROTARY ENCODER ///////////// 
-    
-    // set button debouncing period
-    encoder_button.setDebounceTime(100);
 
-    // initialize previous state for encoder position
+{ /* ROTARY ENCODER */
+
+    // set debouncing period for built-in encoder button
+    Serial.println("        ... enabling encoder button debouncing"); delay(1);
+    encoder_button.setDebounceTime(50);
+
+    // define initial position for encoder
+    Serial.println("        ... defining initial state for encoder"); delay(1);
     encoder_prev_state = digitalRead(encoder_CLK);
 
-    Serial.println("ENCODER INITIALIZED...");
+    // finished rotary encoder initialization
+    Serial.println("ROTARY ENCODER INITIALIZED"); delay(1);
+}
 
-    //////////// DFPlayer MP3 /////////////
 
-    // set volume 0-30
+{ /* MP3 PLAYER */
+
+/*
+    // check for proper connection
+    Serial.println("        ... establishing connection with mp3 player"); delay(1);
+    if(mp3.begin(getSSerial())) { return false; }
+
+    // set volume of speaker 0-30
+    Serial.println("        ... setting mp3 player volume"); delay(1);
     mp3.volume(20);
 
-    // check for proper connection
-    if(!mp3.begin(getSSerial())) { return false; }
-    
-    // play startup sound effect
-    mp3.playMp3Folder(Game_Power_On);
+    // TODO: play power-up sound?
+    Serial.println("        ... playing startup mp3"); delay(1);
+    mp3.playMp3Folder(1);
 
-    Serial.println("DFPLAYER INITIALIZED...");
+    // finished mp3 player initialization
+    Serial.println("MP3 PLAYER INITIALIZED"); delay(1);
+*/
+}
 
-    //////////// IGNITION SWITCH /////////////
 
-    // set switch debouncing period
-    ignition_switch.setDebounceTime(100);
+{ /* BUTTONS  */
 
-    // wait for user to activate switch
-    ignition_switch.loop();
-    while(!ignition_switch.isPressed()) { delay(1); }
+    // TODO
 
-    //////////// END INITIALIZATION /////////////
+}
 
+
+{ /* SWITCHES */
+
+    // TODO
+
+}
+
+
+{ /* SPI DISPLAY */
+
+    // TODO
+
+}
+
+
+    // if all initialization processes were successful 
     return true;
 }    
-
-
-
