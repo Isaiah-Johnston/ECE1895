@@ -1,7 +1,6 @@
 #include <Arduino.h>
 #include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
+#include <U8g2lib.h>
 #include <SoftwareSerial.h>
 #include <DFRobotDFPlayerMini.h>
 #include <ezButton.h>
@@ -29,6 +28,9 @@ const long roundTime = 5000; // Time per round in milliseconds (5 seconds)
 bool gameActive = false;
 int score = 0;
 
+// OLED Display
+U8G2_SSD1309_128X64_NONAME0_1_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
+
 // Initialize buttons using ezButton library
 ezButton brakeButton(BrakePin);
 ezButton accelerateButton(AcceleratePin);
@@ -38,10 +40,6 @@ ezButton honkButton(HonkPin);
 SoftwareSerial softwareSerial(serial_RX, serial_TX); // RX, TX
 DFRobotDFPlayerMini mp3;
 
-// Initialize OLED Display
-#define OLED_RESET    -1
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
-
 // Game action enumeration for clarity
 enum GameAction { PRESS_BRAKE, PRESS_ACCELERATE, STEER_LEFT, STEER_RIGHT, PRESS_HONK, NONE };
 GameAction currentAction = NONE;
@@ -49,7 +47,7 @@ GameAction currentAction = NONE;
 void setup() {
   Serial.begin(9600);
   softwareSerial.begin(9600); // Start the software serial for DFPlayer Mini
-  
+
   // Initialize the DFPlayer Mini
   if (mp3.begin(softwareSerial)) {
     Serial.println("DFPlayer Mini is online.");
@@ -72,17 +70,20 @@ void setup() {
   // Initialize feedback pin
   pinMode(feedbackPin, OUTPUT);
 
+  // Initialize U8g2 OLED display
+  u8g2.begin();
+  u8g2.enableUTF8Print();
+  u8g2.clearBuffer();
+  u8g2.setFont(u8g2_font_ncenB14_tr);
+  u8g2.drawStr(0, 20, "Initialization");
+  u8g2.drawStr(0, 40, "Successful");
+  u8g2.sendBuffer();
+  delay(2000);
+  u8g2.clearBuffer();
+  u8g2.sendBuffer();
+
   // Start the game
   startGame();
-
-  // Initialize OLED display
-  if (!display.begin(SSD1306_I2C, 0x3C)) {
-    Serial.println(F("SSD1306 allocation failed"));
-    for (;;);
-  }
-  display.display(); // Display splash screen
-  delay(2000);
-  display.clearDisplay();
 }
 
 void loop() {
@@ -94,18 +95,18 @@ void loop() {
   // Game logic here
   checkInput(); // Check the player's input
 
-  // Display score on OLED
-  display.clearDisplay();
-  display.setTextSize(1);
-  display.setTextColor(SSD1306_WHITE);
-  display.setCursor(0, 0);
-  display.print("Score: " + String(score));
-  display.display();
-  
   // Check if time for the current action has expired
   if (millis() - gameStartTime >= roundTime) {
     gameOver();
   }
+
+  // Display score on OLED
+  u8g2.clearBuffer();
+  u8g2.setFont(u8g2_font_ncenB14_tr);
+  u8g2.setCursor(0, 20);
+  u8g2.print("Score: ");
+  u8g2.print(score);
+  u8g2.sendBuffer();
 }
 
 void readEncoder() {
@@ -186,12 +187,4 @@ void checkInput() {
 void correctInput() {
   Serial.println("Correct! Score: " + String(score));
   selectNextAction(); // Move to the next round
-
-  // Display updated score immediately after a correct input
-  display.clearDisplay();
-  display.setTextSize(1);
-  display.setTextColor(SSD1306_WHITE);
-  display.setCursor(0, 0);
-  display.print("Score: " + String(score));
-  display.display();
 }
