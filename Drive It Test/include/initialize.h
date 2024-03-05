@@ -1,7 +1,7 @@
+#include "global.h"
+
 #ifndef INITIALIZE_H
 #define INITIALIZE_H
-
-#include "global.h"
 
 bool initialize();
 
