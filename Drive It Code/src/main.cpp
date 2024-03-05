@@ -180,7 +180,7 @@ void checkInput() {
       break;
   }
   
-  // Update last encoder position for next check
+  // Update last encoder position for the next check
   lastEncoderPos = encoderPos;
 }
 
