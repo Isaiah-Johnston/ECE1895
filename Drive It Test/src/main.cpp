@@ -1,46 +1,37 @@
 #include <Arduino.h>
+#include <SoftwareSerial.h>
+#include <DFRobotDFPlayerMini.h>
 
-#include "global.h"
-#include "initialize.h"
+// static pins
+#define serial_TX   2
+#define serial_RX   3
 
 
+// def objects
+DFRobotDFPlayerMini mp3;
+SoftwareSerial      softwareSerial(serial_RX, serial_TX);
 
 void setup() {
 
-  // if initialization was succesful
-  if(initialize()) { return; }
+  Serial.begin(9600);
+  softwareSerial.begin(9600);
 
-  // if initialization failed, stop program
-  Serial.println("INITIALIZATION FAILED..."); delay(1);
-  exit(0);
+// DFplayerMini MP3 PLAYER
+{
+  // start comms with device
+  if(mp3.begin(softwareSerial)) {
+    Serial.println("Connection to DFplayerMini successful!");
 
-}
+    // set volume 0-30
+    mp3.volume(10);
 
-
-void loop() {
-  
-  // check for conditions to end the game
-  if(task_completion_count == task_completion_goal) { end_game(); }
-  if(!check_ignition())                             { end_game(); }
-
-  // if 5 seconds have passed
-  curr_time = millis();
-  if(curr_time - prev_time >= task_completion_time * 1000) {
-    
-    // if the user did not input anything
-    if(!task_success_flag) { end_game(); }
-
-    // reset "timer"
-    prev_time = curr_time;
-
-    // generate a new task
-    generate_task();
-    
+    // play 0001.mp3 in "mp3" folder on SD
+    mp3.playMp3Folder(1);
   }
-
-  // check hardware for correct/incorrect changes
-  check_wheel();
-  check_horn();
-
-  // TODO: add a update_display() function and call for refreshing the display
+  else 
+    Serial.println("Connection to DFplayerMini failed!");
 }
+
+}
+
+void loop() { };

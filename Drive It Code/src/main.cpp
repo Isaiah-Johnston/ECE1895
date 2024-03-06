@@ -11,7 +11,7 @@ void setup() {
   if(initialize()) { return; }
 
   // if initialization failed, stop program
-  Serial.println("INITIALIZATION FAILED..."); delay(1);
+  Serial.println("INITIALIZATION FAILED..."); delay(100);
   exit(0);
 
 }

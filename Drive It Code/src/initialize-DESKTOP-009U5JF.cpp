@@ -1,5 +1,8 @@
 #include "initialize.h"
 
+
+
+
 bool initialize() {
 
 /* SERIAL PORTS */
@@ -20,7 +23,7 @@ bool initialize() {
     Serial.println("        ... resetting pins"); delay(1);
     
     // reset pins and error check
-    //if(!resetPins()) { return false; }
+    if(!resetPins()) { return false; }
     
     Serial.println("        ... setting pin types"); delay(1);
 
@@ -55,7 +58,7 @@ bool initialize() {
 
 
 /* MP3 PLAYER */
-{ 
+{ /*
     // check for proper connection
     Serial.println("        ... establishing connection with mp3 player"); delay(1);
     if(mp3.begin(getSSerial())) { return false; }
@@ -70,7 +73,7 @@ bool initialize() {
 
     // finished mp3 player initialization
     Serial.println("MP3 PLAYER INITIALIZED"); delay(1);
-}
+*/}
 
 
 /* BUTTONS  */
