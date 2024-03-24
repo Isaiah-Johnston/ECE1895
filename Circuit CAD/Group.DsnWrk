@@ -1,0 +1,6 @@
+[ProjectGroup]
+Version=1.0
+[Project1]
+ProjectPath=Main_Circuit\Main_Circuit.PrjPcb
+[Project2]
+ProjectPath=Battery_Circuit\Battery_Circuit.PrjPcb

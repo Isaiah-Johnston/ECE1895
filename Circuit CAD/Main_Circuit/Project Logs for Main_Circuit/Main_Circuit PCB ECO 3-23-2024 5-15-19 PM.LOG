@@ -1,0 +1,10 @@
+Removed Pin From Net: NetName=GND Pin=B0-0
+Removed Pin From Net: NetName=GND Pin=B1-0
+Removed Pin From Net: NetName=GND Pin=J0-2
+Added Pin To Net: NetName=NetB0_0 Pin=B0-0
+Added Pin To Net: NetName=NetB0_0 Pin=B1-0
+Added Pin To Net: NetName=NetB0_0 Pin=J0-2
+Added Net: Name=NetB0_0
+Added Member To Class: ClassName=Main_Circuit Member=Component B0 1291
+Added Member To Class: ClassName=Main_Circuit Member=Component B1 1291
+Added Member To Class: ClassName=Main_Circuit Member=Component J0 JST-VH
