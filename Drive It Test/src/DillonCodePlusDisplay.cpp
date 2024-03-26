@@ -9,7 +9,8 @@
 #define serial_RX 3
 const int BrakePin = 28;
 const int AcceleratePin = 27;
-const int HonkPin = 11;
+// Changed HonkPin to avoid overlap with the OLED data pin
+const int HonkPin = 4; // Updated to a free pin
 const int EncoderPinA = 5;
 const int EncoderPinB = 6;
 const int feedbackPin = 12;
@@ -82,7 +83,9 @@ void loop() {
 }
 
 void readEncoder() {
-  if (digitalRead(EncoderPinA) == digitalRead(EncoderPinB)) {
+  int a = digitalRead(EncoderPinA);
+  int b = digitalRead(EncoderPinB);
+  if (a != b) {
     encoderPos++;
   } else {
     encoderPos--;
@@ -134,56 +137,46 @@ void selectNextAction() {
     u8g2.setCursor(0, 15);
     switch(currentAction) {
       case PRESS_BRAKE: u8g2.print("Press Brake!"); break;
-case PRESS_ACCELERATE: u8g2.print("Accelerate!"); break;
-case STEER_LEFT: u8g2.print("Steer Left!"); break;
-case STEER_RIGHT: u8g2.print("Steer Right!"); break;
-case PRESS_HONK: u8g2.print("Honk!"); break;
-default: break;
-}
-u8g2.setCursor(0, 30);
-u8g2.print("Score: ");
-u8g2.print(score);
-} while (u8g2.nextPage());
+      case PRESS_ACCELERATE: u8g2.print("Accelerate!"); break;
+      case STEER_LEFT: u8g2.print("Steer Left!"); break;
+      case STEER_RIGHT: u8g2.print("Steer Right!"); break;
+      case PRESS_HONK: u8g2.print("Honk!"); break;
+      default: break;
+    }
+    u8g2.setCursor(0, 30);
+    u8g2.print("Score: ");
+    u8g2.print(score);
+  } while (u8g2.nextPage());
 }
 
 void checkInput() {
-if (!gameActive) return;
+  if (!gameActive) return;
 
-switch(currentAction) {
-case PRESS_BRAKE:
-if (brakeButton.isPressed()) correctInput();
-break;
-case PRESS_ACCELERATE:
-if (accelerateButton.isPressed()) correctInput();
-break;
-case STEER_LEFT:
-if (lastEncoderPos > encoderPos) correctInput();
-break;
-case STEER_RIGHT:
-if (lastEncoderPos < encoderPos) correctInput();
-break;
-case PRESS_HONK:
-if (honkButton.isPressed()) correctInput();
-break;
-default:
-break;
-}
+  switch(currentAction) {
+    case PRESS_BRAKE:
+      if (brakeButton.isPressed()) correctInput();
+      break;
+    case PRESS_ACCELERATE:
+      if (accelerateButton.isPressed()) correctInput();
+      break;
+    case STEER_LEFT:
+      if (lastEncoderPos > encoderPos) correctInput();
+      break;
+    case STEER_RIGHT:
+      if (lastEncoderPos < encoderPos) correctInput();
+      break;
+    case PRESS_HONK:
+      if (honkButton.isPressed()) correctInput();
+      break;
+    default:
+      break;
+  }
 
-// Update the last encoder position
-lastEncoderPos = encoderPos;
+  // Update the last encoder position
+  lastEncoderPos = encoderPos;
 }
 
 void correctInput() {
-Serial.println("Correct! Score: " + String(score));
-selectNextAction(); // Move to the next round
-}
-
-void readEncoder() {
-int a = digitalRead(EncoderPinA);
-int b = digitalRead(EncoderPinB);
-if (a != b) {
-encoderPos++;
-} else {
-encoderPos--;
-}
+  Serial.println("Correct! Score: " + String(score));
+  selectNextAction(); // Move to the next round
 }
