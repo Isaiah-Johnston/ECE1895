@@ -1,37 +1,60 @@
-#include <Arduino.h>
-#include <SoftwareSerial.h>
-#include <DFRobotDFPlayerMini.h>
-
-// static pins
-#define serial_TX   2
-#define serial_RX   3
-
-
-// def objects
-DFRobotDFPlayerMini mp3;
-SoftwareSerial      softwareSerial(serial_RX, serial_TX);
+#include "global.h"
 
 void setup() {
 
-  Serial.begin(9600);
-  softwareSerial.begin(9600);
-
-// DFplayerMini MP3 PLAYER
-{
-  // start comms with device
-  if(mp3.begin(softwareSerial)) {
-    Serial.println("Connection to DFplayerMini successful!");
-
-    // set volume 0-30
-    mp3.volume(10);
-
-    // play 0001.mp3 in "mp3" folder on SD
-    mp3.playMp3Folder(1);
+  // Runs initialization sequence and checks for failure
+  if(!initialize()) {
+    Serial.println("INITIALIZATION FAILED..."); delay(100);
+    exit(0);
   }
-  else 
-    Serial.println("Connection to DFplayerMini failed!");
+
+  Serial.println("WAITING FOR PLAYER");
+    delay(1);
+
+  // Wait for user to start game
+  while(!check_ignition())
+    delay(1);
+
+  Serial.println("THE GAME HAS STARTED");
+    delay(1);
 }
 
+
+void loop() { 
+
+{ /* HANDLES GAME-END CONDITIONS */
+
+  // If user turns vehicle off
+  if(!check_ignition())
+    end_game();
+
+  // If user reaches task goal
+  if(task_count == task_goal) 
+    end_game();
 }
 
-void loop() { };
+
+{ /* HANDLES TASK GENERATION */
+
+  curr_time = millis();
+
+  // Generates a new task every task_time seconds
+  // Checks for user inaction
+  if(curr_time-prev_time >= task_time*1000) {
+    
+    // If user didn't do anything
+    if(!task_flag)
+      end_game();
+
+    // Generate task
+    generate_task();
+  }
+}
+
+{ /* CHECKS IO FOR USER ACTION */
+  check_horn();
+  check_gas();
+  check_brake();
+  check_wheel();
+}
+};
